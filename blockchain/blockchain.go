@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -28,9 +29,10 @@ func (blkch *Blockchain) AddBlockWithMetadata(AllData, IPFSHash, Owner, RecordID
 		TransactionID: RecordID,
 		Owner:         Owner,
 	}
+
+	log.Printf("Adding block with Data: %s, IPFSHash: %s, RecordID: %s, Owner: %s", AllData, IPFSHash, RecordID, Owner)
 	newBlock.SetHash()
 
-	// Validate the block hash before adding it
 	if len(newBlock.MyBlockHash) == 0 {
 		return fmt.Errorf("block hash generation failed")
 	}
