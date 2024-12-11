@@ -12,15 +12,13 @@ var BC *Blockchain
 
 var DoctorProfiles = make(map[string]DoctorProfile)
 
-// PatientProfiles maintains a map of all patient profiles in the system
 var PatientProfiles = make(map[string]PatientProfile)
 
 func InitBlockchain() {
-	BC = NewBlockchain() // Initialize the global blockchain instance
-	ConnectToIPFS()      // Ensure IPFS is connected
+	BC = NewBlockchain()
+	ConnectToIPFS()
 }
 
-// NewBlockchain creates a new blockchain with the genesis block
 func NewBlockchain() *Blockchain {
 	genesisBlock := NewBlock("Genesis Block", []byte{}, "", "", "", []string{}, []string{})
 	return &Blockchain{
@@ -28,7 +26,6 @@ func NewBlockchain() *Blockchain {
 	}
 }
 
-// AddBlock adds a new block to the blockchain
 func (blkch *Blockchain) AddBlock(AllData string, IPFSHash string) error {
 	previousBlock := blkch.Blocks[len(blkch.Blocks)-1]
 	newBlock := NewBlock(AllData, previousBlock.MyBlockHash, IPFSHash, "", "", []string{}, []string{})
@@ -76,11 +73,9 @@ func (blkch *Blockchain) AddBlockWithMetadata(AllData, IPFSHash, Owner, RecordID
 	return nil
 }
 
-// GetAllDoctorPermissions retrieves a map of all doctor permissions across the blockchain
 func (blkch *Blockchain) GetAllDoctorPermissions() map[string][]string {
 	permissions := make(map[string][]string)
 
-	// Iterate through all blocks and store doctor permissions
 	for _, block := range blkch.Blocks {
 		for _, doctor := range block.DoctorsWithPermission {
 			permissions[doctor] = append(permissions[doctor], block.TransactionID)
@@ -90,20 +85,17 @@ func (blkch *Blockchain) GetAllDoctorPermissions() map[string][]string {
 	return permissions
 }
 
-// ValidateChain checks the integrity of the blockchain
 func (blkch *Blockchain) ValidateChain() error {
 	for i := 1; i < len(blkch.Blocks); i++ {
 		currentBlock := blkch.Blocks[i]
 		previousBlock := blkch.Blocks[i-1]
 
-		// Check hash consistency between blocks
 		if string(currentBlock.PreviousHash) != string(previousBlock.MyBlockHash) {
 			return fmt.Errorf("blockchain validation failed: block %d has an invalid previous hash", i)
 		}
 
-		// Recalculate the hash and compare it to the stored hash
 		expectedHash := currentBlock.MyBlockHash
-		currentBlock.SetHash() // Recalculate hash
+		currentBlock.SetHash()
 		if string(currentBlock.MyBlockHash) != string(expectedHash) {
 			return fmt.Errorf("blockchain validation failed: block %d has been tampered with", i)
 		}

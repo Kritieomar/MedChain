@@ -24,23 +24,20 @@ func GetDoctorProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPatientProfile(w http.ResponseWriter, r *http.Request) {
-	// Extract patient ID from the request
+
 	vars := mux.Vars(r)
 	patientID := vars["patient_id"]
 
-	// Retrieve the patient profile from the blockchain's PatientProfiles map
 	profile, exists := blockchain.PatientProfiles[patientID]
 	if !exists {
 		http.Error(w, "Patient profile not found", http.StatusNotFound)
 		return
 	}
 
-	// Return the profile as a JSON response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(profile)
 }
 
-// AddRecord handles POST requests to add medical records
 func AddRecord(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Data                  string   `json:"data"`
@@ -55,14 +52,12 @@ func AddRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upload to IPFS
 	ipfsHash, err := blockchain.AddFileToIPFS(request.Data)
 	if err != nil {
 		http.Error(w, "Failed to upload to IPFS", http.StatusInternalServerError)
 		return
 	}
 
-	// Add block to the blockchain with permissions
 	err = blockchain.BC.AddBlockWithMetadata(request.Data, ipfsHash, request.DoctorID, request.RecordID, request.DoctorsWithPermission, []string{}, "")
 	if err != nil {
 		log.Printf("Error adding block to blockchain: %v", err)
@@ -79,7 +74,6 @@ func AddRecord(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// AcceptRecord handles POST requests for the patient to accept the record
 func AcceptRecord(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		RecordID  string `json:"record_id"`
@@ -92,13 +86,12 @@ func AcceptRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for the record by RecordID
 	for _, block := range blockchain.BC.Blocks {
 		if block.TransactionID == request.RecordID {
-			// Retrieve the patient's profile
+
 			profile, exists := block.PatientProfiles[request.PatientID]
 			if !exists {
-				// If the profile does not exist, create a new one
+
 				profile = blockchain.PatientProfile{
 					PatientID:          request.PatientID,
 					AcceptedRecords:    []string{},
@@ -107,14 +100,11 @@ func AcceptRecord(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// Modify the profile
 			profile.AcceptedRecords = append(profile.AcceptedRecords, block.IPFSHash)
 			profile.InteractionHistory = append(profile.InteractionHistory, "Record accepted by patient "+request.PatientID)
 
-			// Save the updated profile back to the map
 			block.PatientProfiles[request.PatientID] = profile
 
-			// Respond with success
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{
 				"message":   "Record accepted successfully",
@@ -125,7 +115,6 @@ func AcceptRecord(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// If record not found, return an error
 	http.Error(w, "Record not found", http.StatusNotFound)
 }
 
@@ -141,13 +130,12 @@ func RejectRecord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for the record by RecordID
 	for _, block := range blockchain.BC.Blocks {
 		if block.TransactionID == request.RecordID {
-			// Retrieve the patient's profile
+
 			profile, exists := block.PatientProfiles[request.PatientID]
 			if !exists {
-				// If the profile does not exist, create a new one
+
 				profile = blockchain.PatientProfile{
 					PatientID:          request.PatientID,
 					AcceptedRecords:    []string{},
@@ -156,14 +144,11 @@ func RejectRecord(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// Modify the profile
 			profile.RejectedRecords = append(profile.RejectedRecords, block.IPFSHash)
 			profile.InteractionHistory = append(profile.InteractionHistory, "Record rejected by patient "+request.PatientID)
 
-			// Save the updated profile back to the map
 			block.PatientProfiles[request.PatientID] = profile
 
-			// Respond with success
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{
 				"message":   "Record rejected successfully",
@@ -174,11 +159,9 @@ func RejectRecord(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// If record not found, return an error
 	http.Error(w, "Record not found", http.StatusNotFound)
 }
 
-// GetFileFromIPFS handles GET requests to retrieve a file from IPFS using its CID
 func GetFileFromIPFS(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	cid := vars["cid"]
@@ -188,7 +171,6 @@ func GetFileFromIPFS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve data from IPFS
 	data, err := blockchain.GetFileFromIPFS(cid)
 	if err != nil {
 		log.Printf("Error retrieving file from IPFS for CID %s: %v", cid, err)
@@ -196,19 +178,16 @@ func GetFileFromIPFS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return data and CID as a response
 	response := map[string]string{"cid": cid, "data": data}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetBlockchain handles GET requests to view the current state of the blockchain
 func GetBlockchain(w http.ResponseWriter, r *http.Request) {
-	// Return the blockchain
+
 	json.NewEncoder(w).Encode(blockchain.BC)
 }
 
-// GrantPermission handles POST requests to grant a doctor access to a medical record
 func GrantPermission(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		RecordID string `json:"record_id"`
@@ -221,7 +200,6 @@ func GrantPermission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the block by RecordID and grant permission
 	for _, block := range blockchain.BC.Blocks {
 		if block.TransactionID == request.RecordID {
 			block.AddDoctorPermission(request.DoctorID)
@@ -238,7 +216,6 @@ func GrantPermission(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Record not found", http.StatusNotFound)
 }
 
-// LogInteraction handles POST requests to log interactions for a record
 func LogInteraction(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		RecordID    string `json:"record_id"`
@@ -251,7 +228,6 @@ func LogInteraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the block by RecordID and log the interaction
 	for _, block := range blockchain.BC.Blocks {
 		if block.TransactionID == request.RecordID {
 			block.LogInteraction(request.Interaction)

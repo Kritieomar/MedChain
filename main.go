@@ -12,25 +12,19 @@ import (
 )
 
 func main() {
-	// Initialize Blockchain
+
 	log.Println("Initializing Blockchain...")
-	blockchain.InitBlockchain() // Initializes the global BC variable
+	blockchain.InitBlockchain()
 
-	// IPFS and Ganache connection code...
-	// Connect to IPFS and Ganache as before
-
-	// Step 3: Initialize the API router
 	log.Println("Initializing API router...")
-	router := api.NewRouter() // Router does not need to pass blockchainInstance
+	router := api.NewRouter()
 
-	// Step 4: Setup graceful shutdown
 	serverAddress := ":8080"
 	srv := &http.Server{
 		Addr:    serverAddress,
 		Handler: router,
 	}
 
-	// Go routine for handling shutdown signals
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
@@ -42,7 +36,6 @@ func main() {
 		log.Println("Server shutdown successfully")
 	}()
 
-	// Step 5: Start the HTTP server
 	log.Printf("Starting server on %s...\n", serverAddress)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed: %v", err)
